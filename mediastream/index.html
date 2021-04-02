@@ -1,0 +1,71 @@
+<html>
+		<head>
+				<title> 
+						WebRTC get audio and video devices
+				</title> 
+<style>
+.none {
+    -webkit-filter: none;
+}
+.blur {
+    -webkit-filter: blur(3px);
+}
+.grayscale {
+    -webkit-filter: grayscale(1);
+}
+.invert {
+    -webkit-filter: invert(1);
+}
+.sepia {
+    -webkit-filter: sepia(1);
+}
+</style>
+		</head>
+		<body>
+				<div>
+						<label>audio input device:</label>
+						<select id="audioSource"></select>
+				</div>
+				<div>
+						<label>audio output device:</label>
+						<select id="audioOutput"></select>
+				</div>
+				<div>
+						<label>video input device:</label>
+						<select id="videoSource"></select>
+				</div>
+                <div>
+						<label>Filter:</label>
+						<select id="filter">
+                            <option value="none">None</option> 
+                            <option value="blur">Blur</option> 
+                            <option value="grayscale">Grayscale</option> 
+                            <option value="invert">Invert</option> 
+                            <option value="Sepia">Sepia</option> 
+                        </select>
+				</div>
+
+                <table>
+                    <tr>
+                        <!--<td><audio autoplay controls id="audioplayer"></audio></td>-->
+                        <td><video autoplay playsinline id="player"></video></td>
+                        <td><video playsinline id="recplayer"></video></td>
+                    </tr>
+                    <tr>
+                        <td><button id="record">Start Record</button></td>
+                        <td><button id="recplay" disabled>Play</button></td>
+                        <td><button id="download" disabled>Download</button></td>
+                    </tr>
+                </table>
+
+                <div>
+                    <button id="snapshot">Take snapshot</button>
+                </div>
+                <div>
+                    <canvas id="picture"></canvas>
+                </div>
+
+                <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+				<script src="./js/client.js"></script>
+		</body>
+</html>
