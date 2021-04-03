@@ -138,6 +138,7 @@ function createPeerConnection (isInitiator=false) {
                 'username': 'wy'
             }]
         }
+        var pcConfig2 = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478?transport=udp' }] }
 
         var offerOptions = {
             offerToRecieveAudio: 0,
