@@ -43,48 +43,14 @@ function handleOfferError(err) {
     console.error('Failed to create offer:', err);
 }
 
-function call() {
-    if (state === 'joined_conn' && !pc) {
-        var pcConfig = {
-            'iceServers': [{
-                'urls': 'turn:yaindream.com:3478',
-                'credential': '123456',
-                'username': 'wy'
-            }, {
-                'urls': 'stun:yaindream.com:3478',
-                'credential': '123456',
-                'username': 'wy'
-            }]
-        }
-
-        var offerOptions = {
-            offerToRecieveAudio: 0,
-            offerToRecieveVideo: 1
-        }
-
-        pc = new SimplePeer({
-          initiator: location.hash === '#1',
-          config: pcConfig,
-          offerOptions: offerOptions,
-          stream: localStream,
-          trickle: true
-        });
-
-        // 发起者自动调的
-        pc.on('signal', data => {
-          console.log(data);
-          sendMessage(roomid, data);
-        })
-
-        pc.on('stream', stream => {
-          remoteVideo.srcObject = stream;
-        })
-
-    //     pc.createOffer(offerOptions)
-    //         .then(getOffer)
-    //         .catch(handleOfferError);
-    }
-}
+// function call() {
+//     if (state === 'joined_conn' && pc) {
+        
+//     //     pc.createOffer(offerOptions)
+//     //         .then(getOffer)
+//     //         .catch(handleOfferError);
+//     }
+// }
 
 function conn() {
     socket = io.connect();
@@ -107,11 +73,12 @@ function conn() {
             // createPeerConnection();
         }
         state = 'joined_conn';
+        console.log('receive otherjoin message: state=', state);
 
         // 媒体协商
-        call();
-
-        console.log('receive otherjoin message: state=', state);
+        // call();
+        createPeerConnection();
+        sendMessage(roomid, state);
     });
     
     socket.on('full', (roomid, id) => {
@@ -147,7 +114,10 @@ function conn() {
         // 媒体协商
 
         if (data) {
-            if (data.type === 'offer') {
+            if (data === 'joined_conn' && !pc) {
+                createPeerConnection();
+                
+            } else if (data.type === 'offer') {
                 // pc.setRemoteDescription(new RTCSessionDescription(data));
                 // pc.createAnswer()
                 //     .then(getAnswer)
@@ -164,6 +134,7 @@ function conn() {
                 //     candidate: data.candidate
                 // });
                 // pc.addIceCandidate(candidate);
+                pc.signal(data);
             } else {
                 console.error('the message is invalid', data);
             }
@@ -226,34 +197,70 @@ function leave() {
     closeLocalMedia();
 }
 
-// function createPeerConnection() {
-//     console.log('create RTCPeerConnection!');
-//     if (!pc) {
-//         pc = new RTCPeerConnection(pcConfig);
+function createPeerConnection() {
+    console.log('create SimplePeer!');
+    if (!pc) {
+        var pcConfig = {
+            'iceServers': [{
+                'urls': 'turn:yaindream.com:3478',
+                'credential': '123456',
+                'username': 'wy'
+            }, {
+                'urls': 'stun:yaindream.com:3478',
+                'credential': '123456',
+                'username': 'wy'
+            }]
+        }
 
-//         pc.onicecandidate = (e) => {
-//             if (e.candidate) {
-//                 // console.log('find an new candidate', e.candidate);
-//                 sendMessage(roomid, {
-//                     type: 'candidate',
-//                     label: e.candidate.sdpMLineIndex,
-//                     id: e.candidate.sdpMid,
-//                     candidate: e.candidate.candidate
-//                 });
-//             }
-//         }
+        var offerOptions = {
+            offerToRecieveAudio: 0,
+            offerToRecieveVideo: 1
+        }
 
-//         pc.ontrack = (e) => {
-//             remoteVideo.srcObject = e.streams[0];
-//         }
-//     }
+        pc = new SimplePeer({
+          initiator: location.hash === '#1',
+          config: pcConfig,
+          offerOptions: offerOptions,
+          stream: localStream,
+          trickle: true
+        });
 
-//     if (localStream) {
-//         localStream.getTracks().forEach((track) => {
-//             pc.addTrack(track, localStream);
-//         })
-//     }
-// }
+        // 发起者自动调的
+        pc.on('signal', data => {
+          // console.log(data);
+          sendMessage(roomid, data);
+        })
+
+        pc.on('stream', stream => {
+            console.log(stream);
+          remoteVideo.srcObject = stream;
+        })
+
+        // pc = new RTCPeerConnection(pcConfig);
+
+        // pc.onicecandidate = (e) => {
+        //     if (e.candidate) {
+        //         // console.log('find an new candidate', e.candidate);
+        //         sendMessage(roomid, {
+        //             type: 'candidate',
+        //             label: e.candidate.sdpMLineIndex,
+        //             id: e.candidate.sdpMid,
+        //             candidate: e.candidate.candidate
+        //         });
+        //     }
+        // }
+
+        // pc.ontrack = (e) => {
+        //     remoteVideo.srcObject = e.streams[0];
+        // }
+    // }
+
+    // if (localStream) {
+        // localStream.getTracks().forEach((track) => {
+        //     pc.addTrack(track, localStream);
+        // })
+    }
+}
 
 function closePeerConnection() {
     console.log('close RTCPeerConnection!');
