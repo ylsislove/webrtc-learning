@@ -39,7 +39,7 @@ function conn () {
         console.log('receive otherjoin message: state=', state);
 
         // 媒体协商
-        !pc && createPeerConnection();
+        !pc && createPeerConnection(true);
         sendMessage(roomid, state);
     });
 
@@ -124,7 +124,7 @@ function leave () {
     closeLocalMedia();
 }
 
-function createPeerConnection () {
+function createPeerConnection (isInitiator=false) {
     console.log('create simple peer!');
     if (!pc) {
         var pcConfig = {
@@ -145,7 +145,7 @@ function createPeerConnection () {
         }
 
         pc = new SimplePeer({
-            initiator: location.hash === '#1',
+            initiator: isInitiator,
             config: pcConfig,
             offerOptions: offerOptions,
             stream: localStream,
@@ -156,11 +156,15 @@ function createPeerConnection () {
         pc.on('signal', data => {
             // console.log(data);
             sendMessage(roomid, data);
-        })
+        });
 
         pc.on('stream', stream => {
-            console.log(stream);
             remoteVideo.srcObject = stream;
+        });
+
+        pc.on('error', err => {
+            console.log(err);
+            closePeerConnection();
         })
     }
 }
