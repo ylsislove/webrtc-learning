@@ -6,9 +6,6 @@ var remoteVideo = document.querySelector('video#remotevideo');
 var btnConn = document.querySelector('button#connserver');
 var btnLeave = document.querySelector('button#leave');
 
-// var offer = document.querySelector('textarea#offer');
-// var answer = document.querySelector('textarea#answer');
-
 var localStream;
 
 var roomid = '111111';
@@ -16,50 +13,19 @@ var socket = null;
 var pc = null;
 var state = 'init';
 
-function sendMessage(roomid, data) {
+function sendMessage (roomid, data) {
     console.log('send p2p message', roomid, data);
     if (socket) {
         socket.emit('message', roomid, data);
     }
 }
 
-function getAnswer(desc) {
-    pc.setLocalDescription(desc);
-    // send desc to signal
-    sendMessage(roomid, desc);
-}
-
-function handleAnswerError(err) {
-    console.error('Failed to create answer:', err);
-}
-
-function getOffer(desc) {
-    pc.setLocalDescription(desc);
-    // send desc to signal
-    sendMessage(roomid, desc);
-}
-
-function handleOfferError(err) {
-    console.error('Failed to create offer:', err);
-}
-
-// function call() {
-//     if (state === 'joined_conn' && pc) {
-        
-//     //     pc.createOffer(offerOptions)
-//     //         .then(getOffer)
-//     //         .catch(handleOfferError);
-//     }
-// }
-
-function conn() {
+function conn () {
     socket = io.connect();
 
     socket.on('joined', (roomid, id) => {
         console.log('receive joined message:', roomid, id);
         state = 'joined';
-
-        // createPeerConnection();
 
         btnConn.disabled = true;
         btnLeave.disabled = false;
@@ -69,18 +35,14 @@ function conn() {
 
     socket.on('otherjoin', (roomid, id) => {
         console.log('receive otherjoin message:', roomid, id);
-        if (state === 'joined_unbind') {
-            // createPeerConnection();
-        }
         state = 'joined_conn';
         console.log('receive otherjoin message: state=', state);
 
         // 媒体协商
-        // call();
-        createPeerConnection();
+        !pc && createPeerConnection();
         sendMessage(roomid, state);
     });
-    
+
     socket.on('full', (roomid, id) => {
         console.log('receive full message:', roomid, id);
         state = 'leaved';
@@ -112,59 +74,21 @@ function conn() {
     socket.on('message', (roomid, data) => {
         console.log('receive client message:', roomid, data);
         // 媒体协商
-
         if (data) {
             if (data === 'joined_conn' && !pc) {
                 createPeerConnection();
-                
-            } else if (data.type === 'offer') {
-                // pc.setRemoteDescription(new RTCSessionDescription(data));
-                // pc.createAnswer()
-                //     .then(getAnswer)
-                //     .catch(handleAnswerError);
-                pc.signal(data);
-
-            } else if (data.type === 'answer') {
-                // pc.setRemoteDescription(new RTCSessionDescription(data));
-                pc.signal(data);
-
-            } else if (data.type === 'candidate') {
-                // var candidate = new RTCIceCandidate({
-                //     sdpMLineIndex: data.label,
-                //     candidate: data.candidate
-                // });
-                // pc.addIceCandidate(candidate);
-                pc.signal(data);
             } else {
-                console.error('the message is invalid', data);
+                // simple-peer封装了offer, answer和candidate
+                pc.signal(data);
             }
         }
     });
 
     socket.emit('join', roomid);
-
     return;
 }
 
-function getMediaStream(stream) {
-    localStream = stream;
-    localVideo.srcObject = stream;
-
-    conn();
-}
-
-function handleError(err) {
-    console.error('Failed to get Media Stream!', err)
-}
-
-function connSignalServer() {
-    // 开启本地视频
-    start();
-
-    return true;
-}
-
-function start() {
+function start () {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.error('the getUserMedia is not supported!');
         return;
@@ -174,12 +98,16 @@ function start() {
             audio: false
         }
         navigator.mediaDevices.getUserMedia(constraints)
-            .then(getMediaStream)
-            .catch(handleError);
+            .then(stream => {
+                localStream = stream;
+                localVideo.srcObject = stream;
+                conn();
+            })
+            .catch(err => console.error('Failed to get Media Stream!', err));
     }
 }
 
-function closeLocalMedia() {
+function closeLocalMedia () {
     if (localStream && localStream.getTracks()) {
         localStream.getTracks().forEach((track) => {
             track.stop();
@@ -188,17 +116,16 @@ function closeLocalMedia() {
     localStream = null;
 }
 
-function leave() {
+function leave () {
     if (socket) {
         socket.emit('leave', roomid);
     }
-
     closePeerConnection();
     closeLocalMedia();
 }
 
-function createPeerConnection() {
-    console.log('create SimplePeer!');
+function createPeerConnection () {
+    console.log('create simple peer!');
     if (!pc) {
         var pcConfig = {
             'iceServers': [{
@@ -218,57 +145,33 @@ function createPeerConnection() {
         }
 
         pc = new SimplePeer({
-          initiator: location.hash === '#1',
-          config: pcConfig,
-          offerOptions: offerOptions,
-          stream: localStream,
-          trickle: true
+            initiator: location.hash === '#1',
+            config: pcConfig,
+            offerOptions: offerOptions,
+            stream: localStream,
+            trickle: true
         });
 
         // 发起者自动调的
         pc.on('signal', data => {
-          // console.log(data);
-          sendMessage(roomid, data);
+            // console.log(data);
+            sendMessage(roomid, data);
         })
 
         pc.on('stream', stream => {
             console.log(stream);
-          remoteVideo.srcObject = stream;
+            remoteVideo.srcObject = stream;
         })
-
-        // pc = new RTCPeerConnection(pcConfig);
-
-        // pc.onicecandidate = (e) => {
-        //     if (e.candidate) {
-        //         // console.log('find an new candidate', e.candidate);
-        //         sendMessage(roomid, {
-        //             type: 'candidate',
-        //             label: e.candidate.sdpMLineIndex,
-        //             id: e.candidate.sdpMid,
-        //             candidate: e.candidate.candidate
-        //         });
-        //     }
-        // }
-
-        // pc.ontrack = (e) => {
-        //     remoteVideo.srcObject = e.streams[0];
-        // }
-    // }
-
-    // if (localStream) {
-        // localStream.getTracks().forEach((track) => {
-        //     pc.addTrack(track, localStream);
-        // })
     }
 }
 
-function closePeerConnection() {
-    console.log('close RTCPeerConnection!');
+function closePeerConnection () {
+    console.log('close simple peer!');
     if (pc) {
-        pc.close();
+        pc.destroy();
         pc = null;
     }
 }
 
-btnConn.onclick = connSignalServer;
+btnConn.onclick = start;
 btnLeave.onclick = leave;
