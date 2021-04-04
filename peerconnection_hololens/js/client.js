@@ -149,18 +149,8 @@ function leave () {
 function createPeerConnection (isInitiator=false) {
     console.log('create simple peer!');
     if (!pc) {
-        var pcConfig = {
-            'iceServers': [{
-                'urls': 'turn:yaindream.com:3478',
-                'credential': '123456',
-                'username': 'wy'
-            }, {
-                'urls': 'stun:yaindream.com:3478',
-                'credential': '123456',
-                'username': 'wy'
-            }]
-        }
-        var pcConfig2 = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478?transport=udp' }] }
+
+        var pcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:global.stun.twilio.com:3478?transport=udp' }] }
 
         var offerOptions = {
             offerToRecieveAudio: 1,
@@ -169,7 +159,7 @@ function createPeerConnection (isInitiator=false) {
 
         pc = new SimplePeer({
             initiator: isInitiator,
-            config: pcConfig2,
+            config: pcConfig,
             offerOptions: offerOptions,
             stream: localStream,
             trickle: true
